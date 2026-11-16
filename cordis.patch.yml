@@ -6,6 +6,19 @@
 # swap (compaction-basic disabled, dsh-vcc enabled) inside the preset's
 # `compaction` group, so /vcc, /vcc-recall and the vcc_recall tool are
 # available in EVERY mode; the GUI labels the cordis preset "Creator mode".
+# The native `delegation` group is dropped from every preset: subagents and workflows are
+# disabled profile-wide (see the profile patch), so no preset mounts them.
+
+# Compaction defaults live here, not in per-preset rows. A patch file cannot reach a plugin
+# nested inside a preset (`preset-ptc:dsh-vcc` is not addressable) and restating a preset row
+# replaces that preset's whole config, so per-route YAML tables were the only way to tune. Host
+# level means every preset gets these knobs through the engine's inject, and an override is a
+# few lines here. Per-preset tuning still works: declare a `config` on that preset's `dsh-vcc`
+# row and it wins over these defaults. New rows are inserted — a plain `- id:` row only
+# overrides something the base already declares.
+- insert:
+    - id: dsh-vcc-tuning
+      name: '@local/dsh-vcc/lib/tuning-plugin.js'
 
 - id: preset-standard
   name: '@deepseek-ai/dsh-agent-preset'
@@ -81,14 +94,6 @@
             disabled: true
           - id: dsh-vcc
             name: '@local/dsh-vcc'
-            config:
-              auto: true
-              thresholdRatio: 0.7
-              retainTokens: 16000
-              maxTokens: 12000
-              summarizationProvider: dsh-vcc
-              summarizationModel: deterministic
-              vcc: {}
           - id: command-compact
             name: '@deepseek-ai/dsh-command-compact'
           - id: tool-result-pruner
@@ -97,52 +102,6 @@
               thresholdChars: 8192
               headChars: 4096
               tailChars: 1024
-      - id: delegation
-        name: cordis:group
-        group: true
-        isolate:
-          workflowEngine: true
-        config:
-          - id: tool-subagent-control
-            name: '@deepseek-ai/dsh-tool-subagent-control'
-          - id: tool-subagent
-            name: '@deepseek-ai/dsh-tool-subagent'
-            config:
-              provider: spawn
-              toolName: subagent
-              modelSelection: true
-              modelDiscovery: true
-          - id: tool-subagent-fork
-            name: '@deepseek-ai/dsh-tool-subagent'
-            config:
-              provider: fork
-              toolName: subagent_fork
-          - id: tool-subagent-codex
-            name: '@deepseek-ai/dsh-tool-subagent'
-            disabled: true
-            config:
-              provider: codex
-              toolName: subagent_codex
-              maxDepth: provider-managed
-          - id: tool-subagent-claude-code
-            name: '@deepseek-ai/dsh-tool-subagent'
-            disabled: true
-            config:
-              provider: claude-code
-              toolName: subagent_claude_code
-              maxDepth: provider-managed
-          - id: workflow-ptc
-            name: '@deepseek-ai/dsh-workflow-ptc'
-            config:
-              provider: spawn
-          - id: tool-workflow
-            name: '@deepseek-ai/dsh-tool-workflow'
-          - id: tool-ralph
-            name: '@deepseek-ai/dsh-tool-ralph'
-            disabled: true
-            config:
-              subagentProvider: spawn
-              maxRounds: 64
       - id: tool-ask-user
         name: '@deepseek-ai/dsh-tool-ask-user'
       - id: tool-todo
@@ -244,14 +203,6 @@
             disabled: true
           - id: dsh-vcc
             name: '@local/dsh-vcc'
-            config:
-              auto: true
-              thresholdRatio: 0.7
-              retainTokens: 16000
-              maxTokens: 12000
-              summarizationProvider: dsh-vcc
-              summarizationModel: deterministic
-              vcc: {}
           - id: command-compact
             name: '@deepseek-ai/dsh-command-compact'
           - id: tool-result-pruner
@@ -260,52 +211,6 @@
               thresholdChars: 8192
               headChars: 4096
               tailChars: 1024
-      - id: delegation
-        name: cordis:group
-        group: true
-        isolate:
-          workflowEngine: true
-        config:
-          - id: tool-subagent-control
-            name: '@deepseek-ai/dsh-tool-subagent-control'
-          - id: tool-subagent
-            name: '@deepseek-ai/dsh-tool-subagent'
-            config:
-              provider: spawn
-              toolName: subagent
-              modelSelection: true
-              modelDiscovery: true
-          - id: tool-subagent-fork
-            name: '@deepseek-ai/dsh-tool-subagent'
-            config:
-              provider: fork
-              toolName: subagent_fork
-          - id: tool-subagent-codex
-            name: '@deepseek-ai/dsh-tool-subagent'
-            disabled: true
-            config:
-              provider: codex
-              toolName: subagent_codex
-              maxDepth: provider-managed
-          - id: tool-subagent-claude-code
-            name: '@deepseek-ai/dsh-tool-subagent'
-            disabled: true
-            config:
-              provider: claude-code
-              toolName: subagent_claude_code
-              maxDepth: provider-managed
-          - id: workflow-ptc
-            name: '@deepseek-ai/dsh-workflow-ptc'
-            config:
-              provider: spawn
-          - id: tool-workflow
-            name: '@deepseek-ai/dsh-tool-workflow'
-          - id: tool-ralph
-            name: '@deepseek-ai/dsh-tool-ralph'
-            disabled: true
-            config:
-              subagentProvider: spawn
-              maxRounds: 64
       - id: tool-ask-user
         name: '@deepseek-ai/dsh-tool-ask-user'
       - id: tool-todo
@@ -427,14 +332,6 @@
             disabled: true
           - id: dsh-vcc
             name: '@local/dsh-vcc'
-            config:
-              auto: true
-              thresholdRatio: 0.7
-              retainTokens: 16000
-              maxTokens: 12000
-              summarizationProvider: dsh-vcc
-              summarizationModel: deterministic
-              vcc: {}
           - id: command-compact
             name: '@deepseek-ai/dsh-command-compact'
           - id: tool-result-pruner
@@ -518,14 +415,6 @@
             disabled: true
           - id: dsh-vcc
             name: '@local/dsh-vcc'
-            config:
-              auto: true
-              thresholdRatio: 0.7
-              retainTokens: 16000
-              maxTokens: 12000
-              summarizationProvider: dsh-vcc
-              summarizationModel: deterministic
-              vcc: {}
           - id: command-compact
             name: '@deepseek-ai/dsh-command-compact'
           - id: tool-result-pruner
@@ -534,52 +423,6 @@
               thresholdChars: 8192
               headChars: 4096
               tailChars: 1024
-      - id: delegation
-        name: cordis:group
-        group: true
-        isolate:
-          workflowEngine: true
-        config:
-          - id: tool-subagent-control
-            name: '@deepseek-ai/dsh-tool-subagent-control'
-          - id: tool-subagent
-            name: '@deepseek-ai/dsh-tool-subagent'
-            config:
-              provider: spawn
-              toolName: subagent
-              modelSelection: true
-              modelDiscovery: true
-          - id: tool-subagent-fork
-            name: '@deepseek-ai/dsh-tool-subagent'
-            config:
-              provider: fork
-              toolName: subagent_fork
-          - id: tool-subagent-codex
-            name: '@deepseek-ai/dsh-tool-subagent'
-            disabled: true
-            config:
-              provider: codex
-              toolName: subagent_codex
-              maxDepth: provider-managed
-          - id: tool-subagent-claude-code
-            name: '@deepseek-ai/dsh-tool-subagent'
-            disabled: true
-            config:
-              provider: claude-code
-              toolName: subagent_claude_code
-              maxDepth: provider-managed
-          - id: workflow-ptc
-            name: '@deepseek-ai/dsh-workflow-ptc'
-            config:
-              provider: spawn
-          - id: tool-workflow
-            name: '@deepseek-ai/dsh-tool-workflow'
-          - id: tool-ralph
-            name: '@deepseek-ai/dsh-tool-ralph'
-            disabled: true
-            config:
-              subagentProvider: spawn
-              maxRounds: 64
       - id: tool-ask-user
         name: '@deepseek-ai/dsh-tool-ask-user'
       - id: tool-todo

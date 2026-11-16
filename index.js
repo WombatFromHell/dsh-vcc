@@ -8,6 +8,10 @@
 // shrink-gate checks stay untouched. The same row also registers the
 // vcc_recall tool and the /vcc commands, so one installed bundle provides
 // compaction + recall together.
+//
+// Thresholds are not baked into YAML: defaults come from the host-level `dsh-vcc-tuning` entry
+// (lib/tuning-plugin.js, addressable from cordis.patch.yml) and the buffer is re-derived per
+// route from live adapter capacity in `applyRoutePolicy`.
 
 import { BasicCompactionEngine } from '@deepseek-ai/dsh-compaction-basic'
 import z from '@deepseek-ai/schemastery'
@@ -16,24 +20,10 @@ import { toPiMessage } from './lib/dsh-adapter.js'
 import { alignSourceIndices, previousSummaryText, isCompileArtifactMessage } from './lib/engine-util.js'
 import { registerRecallTool } from './lib/recall-tool.js'
 import { registerVccCommands } from './lib/commands.js'
+import { DEFAULTS, engineConfig, routePolicy } from './lib/tuning.js'
 
 const PROVIDER = 'dsh-vcc'
 const MODEL = 'deterministic'
-
-/** Keys the basic backend's resolveConfig understands (strict whitelist). */
-const ENGINE_CONFIG_KEYS = new Set([
-  'thresholdRatio',
-  'headroomTokens',
-  'retainRatio',
-  'retainTokens',
-  'summarizationProvider',
-  'summarizationModel',
-  'maxTokens',
-  'compactionRetries',
-  'maxOverflowRetries',
-  'modelPolicies',
-  'auto',
-])
 
 const modelPolicy = z.object({
   provider: z.string().required(),
@@ -59,7 +49,7 @@ const modelPolicy = z.object({
  * BasicCompactionEngine already performs are preserved as-is.
  */
 export default class DshVccCompactionEngine extends BasicCompactionEngine {
-  static inject = [...BasicCompactionEngine.inject, 'tools', 'commands']
+  static inject = [...BasicCompactionEngine.inject, 'tools', 'commands', 'dsh-vcc-tuning']
 
   static Config = z.object({
     thresholdRatio: z.number(),
@@ -79,12 +69,11 @@ export default class DshVccCompactionEngine extends BasicCompactionEngine {
   })
 
   constructor(ctx, config = {}) {
-    // Whittle the config down to the keys the basic backend understands.
-    const engineConfig = {}
-    for (const key of ENGINE_CONFIG_KEYS) {
-      if (config[key] !== undefined) engineConfig[key] = config[key]
-    }
-    super(ctx, engineConfig)
+    // Defaults come from the host-level `dsh-vcc-tuning` entry (patch-addressable by id); a row
+    // that declares its own config wins over them. The `vcc` sub-object is never forwarded — the
+    // basic backend's resolveConfig rejects unknown keys.
+    const knobs = ctx.get('dsh-vcc-tuning')?.config ?? DEFAULTS
+    super(ctx, engineConfig(config, knobs))
     this.vccConfig = config.vcc ?? {}
 
     if (ctx.tools) {
@@ -93,6 +82,47 @@ export default class DshVccCompactionEngine extends BasicCompactionEngine {
     if (ctx.commands) {
       ctx.effect(() => registerVccCommands(ctx), 'dsh-vcc commands')
     }
+  }
+
+  /**
+   * Refresh the route about to be compacted with a buffer sized for its own capacity, before the
+   * base reads `this.config`. An absolute headroom is wrong across routes: the stock 65536 puts
+   * the trigger near a fifth of a 128k window and rejects any window under ~114k once the output
+   * reservation is 32k.
+   *
+   * `config` is a field on the base, re-read on every compaction (`compactPressure`,
+   * `compactIfNeeded`, `summarize`) — not a promised hook, which is why the numbers go through
+   * compaction-basic's own policy math in lib/tuning.js and test/tuning.test.js asserts the
+   * installed engine accepts them and produces the expected trigger.
+   * @param header - request envelope being priced.
+   * @param signal - cancellation signal forwarded to model resolution.
+   */
+  async applyRoutePolicy(header, signal) {
+    const target = header?.config
+    if (target?.provider === undefined || target?.model === undefined) return
+    let info
+    try {
+      info = await this.ctx.llm.resolveModelInfo(target.provider, target.model, signal)
+    } catch {
+      return // an unroutable target is reported by the base, which resolves it again
+    }
+    const window = info?.context?.contextWindow
+    if (!Number.isInteger(window)) return
+    const reserved = header.config.maxTokens ?? info.defaultMaxTokens ?? 0
+    const policy = routePolicy(target.provider, target.model, window, reserved, this.config.thresholdRatio)
+    const others = this.config.modelPolicies.filter((p) => p.provider !== target.provider || p.model !== target.model)
+    this.config = Object.freeze({ ...this.config, modelPolicies: Object.freeze([...others, policy]) })
+  }
+
+  async compactIfNeeded(agent, trigger, signal) {
+    await this.applyRoutePolicy(agent.session.requestHeader(), signal)
+    return super.compactIfNeeded(agent, trigger, signal)
+  }
+
+  /** Also covers the model-switch check, which prices a *proposed* header. */
+  async compactPressure(agent, header, signal, requireBelowThreshold) {
+    await this.applyRoutePolicy(header, signal)
+    return super.compactPressure(agent, header, signal, requireBelowThreshold)
   }
 
   /** The subclass customization hook of BasicCompactionEngine. */

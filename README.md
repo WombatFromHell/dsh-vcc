@@ -42,7 +42,9 @@ mutation) and `/vcc-recall` (the tool as a human command).
 | `lib/recall-tool.js` | `vcc_recall` tool + shared recall algorithm. |
 | `lib/commands.js` | `/vcc` and `/vcc-recall` human commands. |
 | `src/` | The pi-vcc core pipeline compiled to ESM (MIT, see NOTICE): normalize, filter-noise, sections, rank, build-sections, summarize, search-entries, render-entries, format-recall, recall-scope, extract/\*. |
-| `cordis.patch.yml` | Enables the engine inside the preset's `compaction` group and disables the preset's stock LLM backend. |
+| `lib/tuning.js` | Compaction math: defaults, per-route headroom, config composition (dependency-free). |
+| `lib/tuning-plugin.js` | `dsh-vcc-tuning` — the host-level entry that makes those defaults patch-addressable. |
+| `cordis.patch.yml` | Enables the engine inside each preset's `compaction` group, disables the stock LLM backend, inserts `dsh-vcc-tuning`, and drops the native `delegation` group. |
 | `node_modules/@deepseek-ai/*` | Symlink farm to the harness checkout packages the bundle imports at module-eval time (see below). |
 
 ## How it works
@@ -65,6 +67,27 @@ mutation) and `/vcc-recall` (the tool as a human command).
   branch of the backend's `SummaryResult`. An empty compile throws, so the
   backend treats it like a summarizer that produced nothing (retry/error
   path).
+
+## Compaction defaults
+
+Defaults are not baked into preset YAML. `dsh-vcc-tuning` is a host-level entry that the engine
+injects, so every preset gets the same knobs and an override is a few lines in your own patch:
+
+```yaml
+- id: dsh-vcc-tuning
+  config:
+    thresholdRatio: 0.8
+    retainTokens: 24000
+    headroomTokens: 1500
+```
+
+Defaults: `thresholdRatio 0.85`, `retainTokens 16000`, `headroomTokens 1000`, `auto true`.
+`headroomTokens` is only the fallback for a route the engine has not priced yet — on every
+compaction `applyRoutePolicy` derives the buffer from the live adapter window and that route's
+output reservation (`lib/tuning.js`), so a 128k window with a 32k reservation triggers near 92k
+instead of the stock backend's ~26k, and a small route stays loadable instead of throwing
+`TargetPressureConfigError`. Per-preset tuning still works: declare a `config` on that preset's
+`dsh-vcc` row and it wins over these defaults.
 
 ## Install & verify
 
