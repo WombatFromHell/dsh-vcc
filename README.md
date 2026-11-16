@@ -94,15 +94,15 @@ instead of the stock backend's ~26k, and a small route stays loadable instead of
 ```text
 # from GitHub — pin the commit: an unpinned git spec installs but is never updatable
 dsh plugin --profile web add github:WombatFromHell/dsh-vcc#<sha>
-#   the profile's package.json records  "@local/dsh-vcc": "github:WombatFromHell/dsh-vcc"
-#   and dsh appends @local/dsh-vcc to dsh.profile.bundles
+#   the profile's package.json records  "dsh-vcc": "github:WombatFromHell/dsh-vcc"
+#   and dsh appends dsh-vcc to dsh.profile.bundles
 #   no build approval is needed: the bundle ships plain ESM and declares no scripts
 
 # from the Host's own plugin manager
 plugin_manager  →  install_bundle  →  target: /home/user1/dsh-compaction/dsh-vcc
 ```
 
-- `install_bundle` records `@local/dsh-vcc: link:<this dir>` in the profile's
+- `install_bundle` records `dsh-vcc: link:<this dir>` in the profile's
   `package.json` and applies `cordis.patch.yml`; **no restart is needed on
   first install**.
 - Confirm: `cordis_inspect_query` (Host Config / Tool / Service), then run

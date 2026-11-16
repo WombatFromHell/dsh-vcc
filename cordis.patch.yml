@@ -18,7 +18,7 @@
 # overrides something the base already declares.
 - insert:
     - id: dsh-vcc-tuning
-      name: '@local/dsh-vcc/lib/tuning-plugin.js'
+      name: 'dsh-vcc/lib/tuning-plugin.js'
 
 - id: preset-standard
   name: '@deepseek-ai/dsh-agent-preset'
@@ -93,7 +93,7 @@
             name: '@deepseek-ai/dsh-compaction-basic'
             disabled: true
           - id: dsh-vcc
-            name: '@local/dsh-vcc'
+            name: 'dsh-vcc'
           - id: command-compact
             name: '@deepseek-ai/dsh-command-compact'
           - id: tool-result-pruner
@@ -202,7 +202,7 @@
             name: '@deepseek-ai/dsh-compaction-basic'
             disabled: true
           - id: dsh-vcc
-            name: '@local/dsh-vcc'
+            name: 'dsh-vcc'
           - id: command-compact
             name: '@deepseek-ai/dsh-command-compact'
           - id: tool-result-pruner
@@ -414,7 +414,7 @@
             name: '@deepseek-ai/dsh-compaction-basic'
             disabled: true
           - id: dsh-vcc
-            name: '@local/dsh-vcc'
+            name: 'dsh-vcc'
           - id: command-compact
             name: '@deepseek-ai/dsh-command-compact'
           - id: tool-result-pruner
