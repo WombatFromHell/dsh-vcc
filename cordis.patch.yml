@@ -331,7 +331,7 @@
             name: '@deepseek-ai/dsh-compaction-basic'
             disabled: true
           - id: dsh-vcc
-            name: '@local/dsh-vcc'
+            name: 'dsh-vcc'
           - id: command-compact
             name: '@deepseek-ai/dsh-command-compact'
           - id: tool-result-pruner
