@@ -45,7 +45,7 @@ mutation) and `/vcc-recall` (the tool as a human command).
 | `lib/tuning.js` | Compaction math: defaults, per-route headroom, config composition (dependency-free). |
 | `lib/tuning-plugin.js` | `dsh-vcc-tuning` — the host-level entry that makes those defaults patch-addressable. |
 | `cordis.patch.yml` | Enables the engine inside each preset's `compaction` group, disables the stock LLM backend, inserts `dsh-vcc-tuning`, and drops the native `delegation` group. |
-| `node_modules/@deepseek-ai/*` | Symlink farm to the harness checkout packages the bundle imports at module-eval time (see below). |
+| `@deepseek-ai/*` imports | Resolve from the running DSH installation. The bundle declares no peer copies, so an install fetches nothing extra. |
 
 ## How it works
 
@@ -92,6 +92,13 @@ instead of the stock backend's ~26k, and a small route stays loadable instead of
 ## Install & verify
 
 ```text
+# from GitHub — pin the commit: an unpinned git spec installs but is never updatable
+dsh plugin --profile web add github:WombatFromHell/dsh-vcc#<sha>
+#   the profile's package.json records  "@local/dsh-vcc": "github:WombatFromHell/dsh-vcc"
+#   and dsh appends @local/dsh-vcc to dsh.profile.bundles
+#   no build approval is needed: the bundle ships plain ESM and declares no scripts
+
+# from the Host's own plugin manager
 plugin_manager  →  install_bundle  →  target: /home/user1/dsh-compaction/dsh-vcc
 ```
 
@@ -107,9 +114,9 @@ plugin_manager  →  install_bundle  →  target: /home/user1/dsh-compaction/dsh
 
 ## Known scope (v1)
 
-- Activates for the **cordis** preset only (the patch targets the
-  last-occurring rows in the composed profile). `standard` / `ptc` / `minimal`
-  presets keep their stock compaction backend.
+- Activates in every preset the patch covers (`standard`, `ptc`, `minimal`, `cordis`):
+  each preset's stock `compaction-basic` row is disabled and `dsh-vcc` enabled in the
+  same `compaction` group.
 - Deterministic by design: no LLM calls, no network, no nondeterminism —
   identical input always produces identical output.
 - Only the current session is searchable; earlier sessions are not.
