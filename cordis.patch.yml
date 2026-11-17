@@ -222,6 +222,12 @@
         config:
           fetch: true
           searchTimeoutMs: 60000
+      # PTC mode swaps the tool executor for the sandboxed program runner, so
+      # `run_code` is the only directly callable tool and every other tool is
+      # reached from inside the program. The base patch disables this row
+      # host-wide; the preset row re-enables it in the PTC scope.
+      - id: tool-executor-ptc
+        name: '@deepseek-ai/dsh-tool-executor-ptc'
       - id: tool-cordis
         name: '@deepseek-ai/dsh-tool-cordis'
       - id: skill-filesystem
